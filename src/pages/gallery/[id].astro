@@ -1,0 +1,126 @@
+---
+import { getAlbumImages } from "../../utils";
+import { getCollection } from "astro:content";
+import { Image } from "astro:assets";
+import SkipNavContent from "@components/a11y/skip-nav-content.astro";
+import Prose from "@components/prose.astro";
+import Seo from "@components/seo.astro";
+import Layout from "@layouts/layout.astro";
+
+export async function getStaticPaths() {
+    const albums = await getCollection("albums");
+
+    const paths = Object.values(albums).map((album) => {
+        return {
+            params: {
+                id: album.id,
+            },
+            props: {
+                album,
+            },
+        };
+    });
+
+    return paths;
+}
+
+const { album } = Astro.props;
+const images = await getAlbumImages(album.id);
+---
+
+<Layout>
+    <Seo slot="seo" title=`${album.data.title}` />
+    <SkipNavContent>
+        <Prose>
+            <div class="text-center my-16 mb-32">
+                <h1 class="text-3xl xl:text-6xl font-bold">
+                    {album.data.title}
+                </h1>
+                <p class="text-lg xl:text-2xl my-4">
+                    {album.data.description}
+                </p>
+
+                <div id="lightgallery" class="gallery-grid">
+                    {
+                        images.map((image) => (
+                            <a
+                                href={image.src}
+                                class="gallery-item"
+                                data-lg-size="1600-1200"
+                            >
+                                <Image
+                                    src={image}
+                                    alt={`Image from ${album.data.title} album`}
+                                    quality="mid"
+                                    loading="lazy"
+                                    width={400}
+                                    height={300}
+                                />
+                            </a>
+                        ))
+                    }
+                </div>
+
+                <p class="text-lg my-4 text-center">
+                    <a href="/gallery/" class="hover:underline">← Go back</a>
+                </p>
+            </div>
+        </Prose>
+    </SkipNavContent>
+</Layout>
+
+<script>
+    import lightGallery from "lightgallery";
+    import lgThumbnail from "lightgallery/plugins/thumbnail";
+    import lgZoom from "lightgallery/plugins/zoom";
+    import lgFullscreen from "lightgallery/plugins/fullscreen";
+
+    // Import lightGallery styles
+    import "lightgallery/css/lightgallery.css";
+    import "lightgallery/css/lg-zoom.css";
+    import "lightgallery/css/lg-thumbnail.css";
+    import "lightgallery/css/lg-fullscreen.css";
+
+    // Initialize lightGallery
+    const galleryElement = document.getElementById("lightgallery");
+    if (galleryElement) {
+        lightGallery(galleryElement, {
+            plugins: [lgThumbnail, lgZoom, lgFullscreen],
+            speed: 500,
+            download: true,
+            mobileSettings: {
+                controls: true,
+                showCloseIcon: true,
+            },
+        });
+    }
+</script>
+
+<style>
+    .gallery-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+        gap: 1rem;
+        max-width: 1200px;
+        margin: 2rem auto;
+        padding: 0 1rem;
+    }
+
+    .gallery-item {
+        display: block;
+        overflow: hidden;
+
+        transition: transform 0.3s ease;
+        cursor: pointer;
+    }
+
+    .gallery-item:hover {
+        transform: scale(1.05);
+    }
+
+    .gallery-item img {
+        width: 100%;
+        height: 250px;
+        object-fit: cover;
+    }
+</style>
